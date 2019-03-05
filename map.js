@@ -9,7 +9,7 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiYWVzdGVmYW0iLCJhIjoiY2pza214NHVsMmJtbzQ0czdza
 let map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/aestefam/cjsuw3ms88p5q1gqgvx02sz4q',
-    center: [-46.656736,-23.605342],
+    center: [-73.96184,40.80878],
     zoom: 12
 
 
@@ -45,18 +45,52 @@ map.addControl(geolocate, 'top-left')
 
 // this is an event handler
 geolocate.on('geolocate', function(event) {
-   console.log(event.coords)
-    // create new variables to store the attributes we're interested in from the event
-    let lng = event.coords.longitude
-    let lat = event.coords.latitude
-
-    // debug
-    console.log('geolocated:', lng, lat)
-
-    // format lng lat values and display them on our 'info' element
-    document.getElementById('info').innerHTML = lng.toFixed(5) + "," + lat.toFixed(5)
+ 
 })
 
+geolocate.on('click',function(event) {
 
+    // get the rat-sightings from the layer data
+    let features = map.queryRenderedFeatures({ layers: ['Landmark Violations'] })
+    console.log(features)
 
+    // get the location of the click
+    let current_location = [event.coords.longitude, event.coords.latitude]
+    console.log("Click location:", current_location)
+    // if there aren't any features, don't continue
+    if (features.length == 0) return
 
+    // create variables to hold the closest feature found so far
+    let closest_distance = Infinity
+    let closest_feature = null
+
+    // we're going to check each feature
+    for (let feature of features) {
+
+        // calculate the distance using turf
+        let distance = turf.distance(turf.point(feature.geometry.coordinates), turf.point(current_location))
+
+        // if the distance is less than the closest distance we've seen so far, update the variables
+        if (distance < closest_distance) {
+            closest_distance = distance
+            closest_feature = feature
+        }        
+
+    }
+
+    // closest_distance should now be set to the minimum value
+    // closest_feature should be set to the feature itself
+    console.log("Closest feature:", closest_feature.geometry.coordinates, "(", closest_distance, "m)")
+
+    // additional handler code goes here
+  // calculate bearing
+     // calculate bearing
+    let bearing = turf.bearing(turf.point(current_location), turf.point(closest_feature.geometry.coordinates))
+    console.log("Bearing:", bearing)
+
+    // turn the pointer in that direction
+    var pointer = document.getElementById('pointer')
+    pointer.style.transform = 'rotate(' + bearing + 'deg)'
+
+    map.flyTo({ center: current_location })
+})
